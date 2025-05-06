@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from .models import FeedUser
+from .models import FeedUser, UserSession
 from django.views.generic import View
 from .forms import FeedUserCreateForm, FeedUserLoginForm
 from django.views.generic.edit import FormView
@@ -21,6 +21,9 @@ class LoginView(FormView):
         user = authenticate(self.request, email=email, password=password)
         if user:
             login(self.request, user)
+            user.Online = True
+            user.save()
+            session = UserSession.objects.create(user=user)
             
             return super().form_valid(form)
         else:
@@ -32,11 +35,11 @@ class SignUpView(View):
         return render(request, 'register/index.html', {'form': form})
 
     def post(self, request):
-        print(request.POST)
         form = FeedUserCreateForm(request.POST)
-        print(form.errors)
         if form.is_valid():
             user = form.save()
+            user.Online = True
+            user.save()
             login(request, user)
             return redirect('home')
         return render(request, 'register/index.html', {'form': form})
@@ -46,7 +49,18 @@ class HomeView(TemplateView):
     def get(self, request):
         return render(request, 'home/index.html', {'user': request.user})
     def post(self, request):
-        if(request.POST.get('logout')):
+        if 'logout' in request.POST:
+            session_id = request.session.get('user_session_id')
+            if session_id:
+                try:
+                    session = UserSession.objects.get(id=session_id, user=request.user)
+                    session.logout_time = timezone.now()
+                    session.save()
+                except UserSession.DoesNotExist:
+                    pass
+            request.user.Online = False
+            request.user.save()
             logout(request)
             return redirect('login')
+
         return render(request, 'home/index.html', {'user': request.user})

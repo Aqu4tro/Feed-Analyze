@@ -59,3 +59,12 @@ class FeedUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+class UserSession(models.Model):
+    user = models.ForeignKey(FeedUser, on_delete=models.CASCADE)
+    login_time = models.DateTimeField(default=timezone.now)
+    logout_time = models.DateTimeField(null=True, blank=True)
+
+    def duration_minutes(self):
+        if self.logout_time:
+            return (self.logout_time - self.login_time).total_seconds() / 60
+        return 0
