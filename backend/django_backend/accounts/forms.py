@@ -35,12 +35,24 @@ class FeedUserCreateForm(forms.ModelForm):
 
         first = self.cleaned_data.get('firstName', '').strip()
         last = self.cleaned_data.get('lastName', '').strip()
-        user.username = f"{first}_{last}".lower()
+        last = last.replace(' ', '_')
+
+    
+        if first and last:
+            user.userName = f"{first}_{last}".lower()
+        else:
+            user.userName = "usuario_padrao" 
+
+        print(f"Gerando userName: {user.userName}") 
 
         user.set_password(self.cleaned_data['password'])
 
         if commit:
-            user.save()
+            try:
+                user.save()
+            except Exception as e:
+                print("Erro ao salvar usuário:", e)
+                raise  
         return user
 class FeedUserLoginForm(forms.Form):
     email = forms.EmailField()

@@ -12,7 +12,6 @@ class FeedUserManager(BaseUserManager):
         if not password:
             raise ValueError("A senha é obrigatória")
         
-
         email = self.normalize_email(email)
 
         if(self.model.objects.filter.exists(email=email).exists()):
@@ -41,8 +40,6 @@ class FeedUserManager(BaseUserManager):
                 raise ValueError("senha incorreta")
         except FeedUser.DoesNotExist:
             raise ValueError("Usuário não encontrado")
-
-
 
 class FeedUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
