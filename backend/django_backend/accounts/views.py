@@ -8,14 +8,22 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
 from django.urls import reverse_lazy
+import jwt
+import time
+from django.conf import settings
+from django.utils import timezone
+from django.db.models import Sum
+from django.db import models
+from django.db.models import F, ExpressionWrapper, fields
+from django.db.models.functions import Now, Extract
 # Create your views here.
 
 class LoginView(FormView):
     form_class = FeedUserLoginForm
     template_name = 'login/index.html'
-    success_url = reverse_lazy('home') 
+    success_url = reverse_lazy('home')
 
-    def form_valid(self,form):
+    def form_valid(self, form):
         email = form.cleaned_data['email']
         password = form.cleaned_data['password']
         user = authenticate(self.request, email=email, password=password)
@@ -23,12 +31,13 @@ class LoginView(FormView):
             login(self.request, user)
             user.Online = True
             user.save()
-            session = UserSession.objects.create(user=user)
-            
+            session = UserSession.objects.create(user=user, login_time=timezone.now())
+            self.request.session['user_session_id'] = session.id  # Store session ID
             return super().form_valid(form)
         else:
-            form.add_error(None, "Email ou senhas inválidos")
+            form.add_error(None, "Email ou senha inválidos")
             return super().form_invalid(form)
+
 class SignUpView(View):
     def get(self, request):
         form = FeedUserCreateForm()
@@ -46,8 +55,25 @@ class SignUpView(View):
     
 @method_decorator(login_required, name='dispatch')
 class HomeView(TemplateView):
+    @staticmethod
+    def generate_metabase_embed_url(user_id, dashboard_id):
+        METABASE_SITE_URL = settings.METABASE_SITE_URL
+        METABASE_SECRET_KEY = settings.METABASE_SECRET_KEY
+
+        payload = {
+            "resource": {"dashboard": dashboard_id},
+            "params": {"current_user_id": user_id},
+            "exp": round(time.time()) + 600
+        }
+
+        token = jwt.encode(payload, METABASE_SECRET_KEY, algorithm="HS256")
+        iframe_url = f"{METABASE_SITE_URL}/embed/dashboard/{token}#bordered=true&titled=true"
+        return iframe_url
+
     def get(self, request):
-        return render(request, 'home/index.html', {'user': request.user})
+        dashboard_url = self.generate_metabase_embed_url(request.user.id, dashboard_id=1)
+        return render(request, 'home/index.html', {'user': request.user, 'dashboard_url': dashboard_url})
+
     def post(self, request):
         if 'logout' in request.POST:
             session_id = request.session.get('user_session_id')
@@ -64,3 +90,24 @@ class HomeView(TemplateView):
             return redirect('login')
 
         return render(request, 'home/index.html', {'user': request.user})
+
+
+class UserSessionView(models.Model):
+    user = models.ForeignKey(FeedUser, on_delete=models.CASCADE)
+    login_time = models.DateTimeField()
+    logout_time = models.DateTimeField(null=True, blank=True)
+
+    @staticmethod
+    def get_minutes_online(user_id):
+        now = timezone.now()
+        time_diff = UserSession.objects.filter(
+            user_id=user_id, 
+            login_time__gte=now - timezone.timedelta(days=7)
+        ).annotate(
+            minutes_online=ExpressionWrapper(
+                Extract('logout_time', 'epoch') - Extract('login_time', 'epoch'),
+                output_field=fields.FloatField()
+            )
+        ).aggregate(total_time=Sum('minutes_online'))
+        
+        return time_diff['total_time'] / 60 if time_diff['total_time'] else 0

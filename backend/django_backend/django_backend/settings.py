@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,7 +20,9 @@ Login_URL = 'login/'
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-yduk+^piiwa)m+2p!423skinspgbt6@tdcb!or&@&c-*x&+mhf'
+import secrets
+
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', secrets.token_urlsafe(32))
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -131,3 +133,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 AUTH_USER_MODEL = 'accounts.FeedUser'
+
+
+from dotenv import load_dotenv
+
+load_dotenv()
+METABASE_SITE_URL = os.getenv('METABASE_SITE_URL')
+METABASE_SECRET_KEY = os.getenv('METABASE_SECRET_KEY')
