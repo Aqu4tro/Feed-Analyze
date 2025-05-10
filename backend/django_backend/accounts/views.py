@@ -1,3 +1,5 @@
+import jwt
+import time
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from .models import FeedUser, UserSession
@@ -8,14 +10,16 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
 from django.urls import reverse_lazy
-import jwt
-import time
-from django.conf import settings
 from django.utils import timezone
 from django.db.models import Sum
 from django.db import models
 from django.db.models import F, ExpressionWrapper, fields
 from django.db.models.functions import Now, Extract
+import logging
+from django_backend import settings
+
+logger = logging.getLogger(__name__)
+
 # Create your views here.
 
 class LoginView(FormView):
@@ -52,27 +56,42 @@ class SignUpView(View):
             login(request, user)
             return redirect('home')
         return render(request, 'register/index.html', {'form': form})
-    
+
 @method_decorator(login_required, name='dispatch')
 class HomeView(TemplateView):
+    template_name = 'home/index.html'
+
     @staticmethod
     def generate_metabase_embed_url(user_id, dashboard_id):
         METABASE_SITE_URL = settings.METABASE_SITE_URL
         METABASE_SECRET_KEY = settings.METABASE_SECRET_KEY
 
+        # Verificar se a chave secreta é uma string
+        if not isinstance(METABASE_SECRET_KEY, str) or not METABASE_SECRET_KEY:
+            logger.error("METABASE_SECRET_KEY não é uma string válida!")
+            raise ValueError("A chave secreta do Metabase não é uma string válida.")
+
+        # Gerar o payload para o token JWT
         payload = {
             "resource": {"dashboard": dashboard_id},
             "params": {"current_user_id": user_id},
-            "exp": round(time.time()) + 600
+            "exp": round(time.time()) + 600  # Expira após 10 minutos
         }
 
-        token = jwt.encode(payload, METABASE_SECRET_KEY, algorithm="HS256")
+        try:
+            token = jwt.encode(payload, METABASE_SECRET_KEY, algorithm="HS256")
+        except Exception as e:
+            logger.error(f"Erro ao gerar o token JWT: {e}")
+            raise ValueError("Erro ao gerar o token JWT.")
+
         iframe_url = f"{METABASE_SITE_URL}/embed/dashboard/{token}#bordered=true&titled=true"
         return iframe_url
 
     def get(self, request):
-        dashboard_url = self.generate_metabase_embed_url(request.user.id, dashboard_id=1)
-        return render(request, 'home/index.html', {'user': request.user, 'dashboard_url': dashboard_url})
+        # Gerar URLs de embed para os dashboards
+        dashboard_urls = settings.METABASE_DASHBOARD_LINKS
+
+        return render(request, 'home/index.html', {'user': request.user, 'dashboard_urls': dashboard_urls})
 
     def post(self, request):
         if 'logout' in request.POST:
@@ -92,6 +111,7 @@ class HomeView(TemplateView):
         return render(request, 'home/index.html', {'user': request.user})
 
 
+# Modelo de sessão do usuário
 class UserSessionView(models.Model):
     user = models.ForeignKey(FeedUser, on_delete=models.CASCADE)
     login_time = models.DateTimeField()
