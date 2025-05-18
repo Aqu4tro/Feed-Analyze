@@ -88,9 +88,9 @@ class HomeView(TemplateView):
         return iframe_url
 
     def get(self, request):
-        # Gerar URLs de embed para os dashboards
+        
         dashboard_urls = settings.METABASE_DASHBOARD_LINKS
-
+        print(dashboard_urls)
         return render(request, 'home/index.html', {'user': request.user, 'dashboard_urls': dashboard_urls})
 
     def post(self, request):
@@ -111,7 +111,7 @@ class HomeView(TemplateView):
         return render(request, 'home/index.html', {'user': request.user})
 
 
-# Modelo de sessão do usuário
+
 class UserSessionView(models.Model):
     user = models.ForeignKey(FeedUser, on_delete=models.CASCADE)
     login_time = models.DateTimeField()

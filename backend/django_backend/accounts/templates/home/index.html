@@ -31,34 +31,18 @@
         <main>
             <section>
                 <h2>Dashboards</h2>
+               
                 <div class="dashboard-container">
-                    <div class="dashboard-item">
-                        <iframe
-                            src="{{ dashboard_urls.Tráfego_diário }}"
-                            frameborder="0"
-                            height="100%"
-                            allowtransparency
-                        ></iframe>
+                    <div class="dashboard-item dashboard-main">
+                      <iframe src="{{ dashboard_urls.Tempo_logado }}" ></iframe>
                     </div>
-                    <div class="dashboard-block">
-                        <div class="dashboard-item">
-                            <iframe
-                                src="{{ dashboard_urls.Tempo_logado }}"
-                                frameborder="0"
-                                height="100%"
-                                allowtransparency
-                            ></iframe>
-                        </div>
-                        <div class="dashboard-item">
-                            <iframe
-                                src="{{ dashboard_urls.Posts_por_categoria }}"
-                                frameborder="0"
-                                height="100%"
-                                allowtransparency
-                            ></iframe>
-                        </div>    
+                    <div class="dashboard-item dashboard-secondary-1">
+                      <iframe src="{{ dashboard_urls.Tráfego_diário }}" ></iframe>
                     </div>
-                </div>
+                    <div class="dashboard-item dashboard-secondary-2">
+                      <iframe src="{{ dashboard_urls.Usuários_Ativos_nos_Últimos_10_Minutos }}" ></iframe>
+                    </div>
+                  </div>
             </section>
         </main>
         <footer>

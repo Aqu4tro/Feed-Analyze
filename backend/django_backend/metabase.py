@@ -1,6 +1,7 @@
 import requests
 from django_backend import settings
 import time
+import os
 
 METABASE_URL = "http://localhost:3000"
 EMAIL = "jonathaspasco77@gmail.com"
@@ -14,7 +15,7 @@ def login():
     return response.json()['id']
 
 
-def create_question(session_id, name, native_query, database_id):
+def create_question(session_id, name, native_query, database_id, display_type="bar"):
     headers = {
         "Content-Type": "application/json",
         "X-Metabase-Session": session_id
@@ -26,7 +27,7 @@ def create_question(session_id, name, native_query, database_id):
             "native": {"query": native_query},
             "database": database_id
         },
-        "display": "bar",
+        "display": display_type,
         "visualization_settings": {}
     }
     res = requests.post(f"{METABASE_URL}/api/card", headers=headers, json=data)
@@ -87,7 +88,7 @@ q1 = create_question(session_id, "Usuários registrados hoje", """
       AND "public"."accounts_feeduser"."date_joined" < CAST(CAST((NOW() + INTERVAL '1 day') AS date) AS timestamptz)
     GROUP BY "public"."accounts_feeduser"."id"
     ORDER BY "public"."accounts_feeduser"."id" ASC
-""", database_id)
+""", database_id, display_type="line") 
 
 q2 = create_question(session_id, "Tempo logado por usuário (últimos 7 dias)", """
     SELECT user_id,
@@ -95,13 +96,13 @@ q2 = create_question(session_id, "Tempo logado por usuário (últimos 7 dias)", 
     FROM accounts_usersession
     WHERE login_time >= now() - interval '7 days'
     GROUP BY user_id;
-""", database_id)
+""", database_id, display_type="bar")
 
-q3 = create_question(session_id, "Posts por categoria", """
-    SELECT category, COUNT(*) AS total
-    FROM posts_post
-    GROUP BY category
-""", database_id)
+q3 = create_question(session_id, "Usuários Ativos nos Últimos 10 Minutos", """
+    SELECT COUNT(*) AS usuarios_online
+    FROM accounts_feeduser
+    WHERE last_login >= NOW() - INTERVAL '10 minutes';
+""", database_id, display_type="scalar")
 
 
 d1 = create_dashboard(session_id, "Tráfego diário de usuários")
@@ -110,7 +111,7 @@ add_card_to_dashboard(session_id, d1, q1)
 d2 = create_dashboard(session_id, "Tempo logado por usuário")
 add_card_to_dashboard(session_id, d2, q2)
 
-d3 = create_dashboard(session_id, "Distribuição de posts")
+d3 = create_dashboard(session_id, "Usuários Ativos nos Últimos 10 Minutos")
 add_card_to_dashboard(session_id, d3, q3)
 
 
@@ -118,6 +119,28 @@ public1 = enable_public_link(session_id, d1)
 public2 = enable_public_link(session_id, d2)
 public3 = enable_public_link(session_id, d3)
 
-settings.METABASE_DASHBOARD_LINKS["Tráfego_diário"] = public1
-settings.METABASE_DASHBOARD_LINKS["Tempo_logado"] = public2
-settings.METABASE_DASHBOARD_LINKS["Posts_por_categoria"] = public3
+def update_settings_dashboard_links(links):
+    settings_path = os.path.join(os.path.dirname(__file__), "django_backend", "settings.py")
+    
+    with open(settings_path, "r") as f:
+        content = f.read()
+
+    import re
+
+    
+    new_links_str = f"""METABASE_DASHBOARD_LINKS = {{
+    "Tráfego_diário": "{links['Tráfego_diário']}",
+    "Tempo_logado": "{links['Tempo_logado']}",
+    "Usuários_Ativos_nos_Últimos_10_Minutos": "{links['Usuários_Ativos_nos_Últimos_10_Minutos']}",
+}}"""
+
+    content = re.sub(r"METABASE_DASHBOARD_LINKS\s*=\s*{.*?}", new_links_str, content, flags=re.DOTALL)
+
+    with open(settings_path, "w") as f:
+        f.write(content)
+
+update_settings_dashboard_links({
+    "Tráfego_diário": public1,
+    "Tempo_logado": public2,
+    "Usuários_Ativos_nos_Últimos_10_Minutos": public3
+})
