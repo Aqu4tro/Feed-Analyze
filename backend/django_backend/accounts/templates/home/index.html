@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home - Dashboards</title>
     <link rel="stylesheet" href="{% static 'styleHome.css' %}">
+    <script>
+        
+        setInterval(function () {
+            document.querySelectorAll("iframe").forEach(function (iframe) {
+                iframe.contentWindow.location.reload();
+            });
+        }, 60000);
+    </script>
 </head>
 <body>
     <div class="sidebar">
@@ -31,18 +39,17 @@
         <main>
             <section>
                 <h2>Dashboards</h2>
-               
                 <div class="dashboard-container">
                     <div class="dashboard-item dashboard-main">
-                      <iframe src="{{ dashboard_urls.Tempo_logado }}" ></iframe>
+                        <iframe src="{{ dashboard_urls.Tempo_logado }}"></iframe>
                     </div>
                     <div class="dashboard-item dashboard-secondary-1">
-                      <iframe src="{{ dashboard_urls.Tráfego_diário }}" ></iframe>
+                        <iframe src="{{ dashboard_urls.Tráfego_diário }}"></iframe>
                     </div>
                     <div class="dashboard-item dashboard-secondary-2">
-                      <iframe src="{{ dashboard_urls.Usuários_Ativos_nos_Últimos_10_Minutos }}" ></iframe>
+                        <iframe src="{{ dashboard_urls.Usuários_Ativos_nos_Últimos_10_Minutos }}"></iframe>
                     </div>
-                  </div>
+                </div>
             </section>
         </main>
         <footer>
@@ -51,4 +58,3 @@
     </div>
 </body>
 </html>
-

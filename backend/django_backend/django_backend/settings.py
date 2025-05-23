@@ -15,7 +15,8 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-Login_URL = 'login/'
+LOGIN_URL = '/login/'
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
@@ -142,7 +143,7 @@ METABASE_SITE_URL = os.getenv('METABASE_SITE_URL')
 METABASE_SECRET_KEY = os.getenv('METABASE_SECRET_KEY')
 
 METABASE_DASHBOARD_LINKS = {
-    "Tráfego_diário": "http://localhost:3000/public/dashboard/25692798-3c92-4794-8a1d-274ea15aca80",
-    "Tempo_logado": "http://localhost:3000/public/dashboard/3c74e53a-bae3-4b49-8b7b-59d408df6c7d",
-    "Usuários_Ativos_nos_Últimos_10_Minutos": "http://localhost:3000/public/dashboard/44d28b2d-2d3e-4143-9cb7-a53a23d3f3aa",
+    "Tráfego_diário": "http://localhost:3000/public/dashboard/4f79cbbc-c53e-4402-a5f1-db122ac04a89",
+    "Tempo_logado": "http://localhost:3000/public/dashboard/dbeea7e0-de07-4a67-94c9-b4d8fb31f159",
+    "Usuários_Ativos_nos_Últimos_10_Minutos": "http://localhost:3000/public/dashboard/1a119cd2-6ac1-4867-9f2e-7f6500f89f03",
 }

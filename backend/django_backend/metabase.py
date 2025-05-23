@@ -4,7 +4,7 @@ import time
 import os
 
 METABASE_URL = "http://localhost:3000"
-EMAIL = "jonathaspasco77@gmail.com"
+EMAIL = "jonathaspasco@gmail.com"
 PASSWORD = "Edmc23@#"
 
 def login():
