@@ -4,7 +4,7 @@ import time
 import os
 
 METABASE_URL = "http://localhost:3000"
-EMAIL = "jonathaspasco@gmail.com"
+EMAIL = "jonathaspasco77@gmail.com"
 PASSWORD = "Edmc23@#"
 
 def login():
@@ -91,11 +91,22 @@ q1 = create_question(session_id, "Usuários registrados hoje", """
 """, database_id, display_type="line") 
 
 q2 = create_question(session_id, "Tempo logado por usuário (últimos 7 dias)", """
-    SELECT user_id,
-           SUM(EXTRACT(EPOCH FROM (logout_time - login_time))) / 60 AS minutos_online
-    FROM accounts_usersession
-    WHERE login_time >= now() - interval '7 days'
-    GROUP BY user_id;
+    SELECT
+  id AS session_id,
+  user_id,
+  login_time::date AS login_date,
+  EXTRACT(
+    EPOCH FROM (
+      COALESCE(logout_time, now()) - login_time
+    )
+  ) / 60 AS minutos_online
+FROM
+  accounts_usersession
+WHERE
+  user_id = {{current_user_id}}
+ORDER BY
+  login_time ASC;
+
 """, database_id, display_type="bar")
 
 q3 = create_question(session_id, "Usuários Ativos nos Últimos 10 Minutos", """

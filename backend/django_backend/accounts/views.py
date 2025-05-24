@@ -36,7 +36,7 @@ class LoginView(FormView):
             user.Online = True
             user.save()
             session = UserSession.objects.create(user=user, login_time=timezone.now())
-            self.request.session['user_session_id'] = session.id  # Store session ID
+            self.request.session['user_session_id'] = session.id  
             return super().form_valid(form)
         else:
             form.add_error(None, "Email ou senha inválidos")
@@ -62,36 +62,35 @@ class HomeView(TemplateView):
     template_name = 'home/index.html'
 
     @staticmethod
-    def generate_metabase_embed_url(user_id, dashboard_id):
+    def generate_metabase_embed_url(user_id, dashboard_id, type):
         METABASE_SITE_URL = settings.METABASE_SITE_URL
         METABASE_SECRET_KEY = settings.METABASE_SECRET_KEY
 
-        # Verificar se a chave secreta é uma string
-        if not isinstance(METABASE_SECRET_KEY, str) or not METABASE_SECRET_KEY:
-            logger.error("METABASE_SECRET_KEY não é uma string válida!")
-            raise ValueError("A chave secreta do Metabase não é uma string válida.")
-
-        # Gerar o payload para o token JWT
         payload = {
             "resource": {"dashboard": dashboard_id},
-            "params": {"current_user_id": user_id},
-            "exp": round(time.time()) + 600  # Expira após 10 minutos
+            "exp": round(time.time()) + 6000,
+            "params": {} 
         }
 
-        try:
-            token = jwt.encode(payload, METABASE_SECRET_KEY, algorithm="HS256")
-        except Exception as e:
-            logger.error(f"Erro ao gerar o token JWT: {e}")
-            raise ValueError("Erro ao gerar o token JWT.")
+        if type == 1:
+            payload["params"] = {
+                "current_user_id": user_id
+            }
 
-        iframe_url = f"{METABASE_SITE_URL}/embed/dashboard/{token}#bordered=true&titled=true"
-        return iframe_url
-
-    def get(self, request):
+        token = jwt.encode(payload, METABASE_SECRET_KEY)
         
-        dashboard_urls = settings.METABASE_DASHBOARD_LINKS
-        print(dashboard_urls)
-        return render(request, 'home/index.html', {'user': request.user, 'dashboard_urls': dashboard_urls})
+        iframeUrl = METABASE_SITE_URL + "/embed/dashboard/" + token +"#bordered=true&titled=true"
+        return iframeUrl
+    @method_decorator(login_required, name='dispatch')
+    def get(self, request):
+        user_id = request.user.id
+        dashboards = {
+            'Tempo_logado': self.generate_metabase_embed_url(user_id, dashboard_id=73, type=1),
+            'Tráfego_diário': self.generate_metabase_embed_url(user_id, dashboard_id=72,type=0),
+            'Usuários_Ativos_nos_Últimos_10_Minutos': self.generate_metabase_embed_url(user_id, dashboard_id=74,type=0),
+        }
+
+        return render(request, 'home/index.html', {'user': request.user, 'dashboard_urls': dashboards})
 
     def post(self, request):
         if 'logout' in request.POST:
