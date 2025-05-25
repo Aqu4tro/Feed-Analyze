@@ -142,8 +142,8 @@ load_dotenv()
 METABASE_SITE_URL = os.getenv('METABASE_SITE_URL')
 METABASE_SECRET_KEY = os.getenv('METABASE_SECRET_KEY')
 
-METABASE_DASHBOARD_LINKS = {
-    "Tráfego_diário": "http://localhost:3000/public/dashboard/85bbf090-8887-40b9-848a-382e46ec83fb",
-    "Tempo_logado": "http://localhost:3000/public/dashboard/151458dd-a710-43db-8d8a-ffcf6234b703",
-    "Usuários_Ativos_nos_Últimos_10_Minutos": "http://localhost:3000/public/dashboard/df29195c-496d-4349-ba01-3a9e31a0c317",
-}
+METABASE_DASHBOARD_LINKS = [
+    {"Tráfego_diário": f"('{METABASE_SITE_URL}/public/dashboard/85bbf090-8887-40b9-848a-382e46ec83fb', 72)", "id": 72},
+    {"Tempo_logado": f"('{METABASE_SITE_URL}/public/dashboard/151458dd-a710-43db-8d8a-ffcf6234b703', 73)", "id": 73},
+    {"Usuários_Ativos_nos_Últimos_10_Minutos": f"('{METABASE_SITE_URL}/public/dashboard/df29195c-496d-4349-ba01-3a9e31a0c317', 74)", "id": 74},
+]

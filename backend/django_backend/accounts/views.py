@@ -13,25 +13,34 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.db.models import Sum
 from django.db import models
-from django.db.models import F, ExpressionWrapper, fields
-from django.db.models.functions import Now, Extract
-import logging
+from django.db.models import ExpressionWrapper, fields
+from django.db.models.functions import Extract
+from django.core.cache import cache
 from django_backend import settings
 
-logger = logging.getLogger(__name__)
 
-# Create your views here.
+
 
 class LoginView(FormView):
     form_class = FeedUserLoginForm
     template_name = 'login/index.html'
     success_url = reverse_lazy('home')
+    MAX_LOGIN_ATTEMPTS = 5
+    LOCKOUT_TIME = 300 
 
     def form_valid(self, form):
         email = form.cleaned_data['email']
         password = form.cleaned_data['password']
+        cache_key = f"login_attempts:{email}"
+        attempts = cache.get(cache_key, 0)
+        if attempts >= self.MAX_LOGIN_ATTEMPTS:
+            form.add_error(None, "Multiplas tentativas de acesso. Aguarde e tente novamente depois.")
+            return super().form_invalid(form)
+
         user = authenticate(self.request, email=email, password=password)
+
         if user:
+            cache.delete(cache_key)
             login(self.request, user)
             user.Online = True
             user.save()
@@ -39,6 +48,7 @@ class LoginView(FormView):
             self.request.session['user_session_id'] = session.id  
             return super().form_valid(form)
         else:
+            cache.set(cache_key, attempts + 1, timeout=self.LOCKOUT_TIME)
             form.add_error(None, "Email ou senha inválidos")
             return super().form_invalid(form)
 
