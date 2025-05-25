@@ -71,13 +71,13 @@ def create_dashboard(session_id, name):
 
 def main():
     session_id = login()
-    print("Login realizado com sucesso.")
+    
 
-    time.sleep(2)  # pequena pausa para garantir conexão
+    time.sleep(2)  
 
-    database_id = 2  # ID do banco PostgreSQL configurado no Metabase
+    database_id = 2 
 
-    # Pergunta 1: Usuários registrados hoje (gráfico de linha)
+    
     q1 = find_question_by_name(session_id, "Usuários registrados hoje")
     if not q1:
         q1 = create_question(
@@ -104,7 +104,7 @@ def main():
     else:
         print("Pergunta 'Usuários registrados hoje' já existe.")
 
-    # Pergunta 2: Tempo logado por usuário (gráfico de barra)
+   
     q2 = find_question_by_name(session_id, "Tempo logado por usuário")
     if not q2:
         q2 = create_question(
@@ -134,7 +134,7 @@ ORDER BY
     else:
         print("Pergunta 'Tempo logado por usuário' já existe.")
 
-    # Pergunta 3: Usuários Ativos nos Últimos 10 Minutos (scalar)
+    
     q3 = find_question_by_name(session_id, "Usuários Ativos nos Últimos 10 Minutos")
     if not q3:
         q3 = create_question(
@@ -152,7 +152,7 @@ ORDER BY
     else:
         print("Pergunta 'Usuários Ativos nos Últimos 10 Minutos' já existe.")
 
-    # Criar dashboards
+    
     d1 = find_dashboard_by_name(session_id, "Tráfego diário de usuários")
     if not d1:
         d1 = create_dashboard(session_id, "Tráfego diário de usuários")
