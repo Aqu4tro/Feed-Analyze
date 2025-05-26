@@ -73,13 +73,13 @@ class HomeView(TemplateView):
 
     @staticmethod
     def generate_metabase_embed_url(user_id, dashboard_id, type):
-        METABASE_SITE_URL = settings.METABASE_SITE_URL
+        METABASE_SITE_URL = settings.METABASE_SITE_URL.rstrip('/')
         METABASE_SECRET_KEY = settings.METABASE_SECRET_KEY
 
         payload = {
             "resource": {"dashboard": dashboard_id},
             "exp": round(time.time()) + 6000,
-            "params": {} 
+            "params": {}
         }
 
         if type == 1:
@@ -88,16 +88,20 @@ class HomeView(TemplateView):
             }
 
         token = jwt.encode(payload, METABASE_SECRET_KEY)
-        
-        iframeUrl = METABASE_SITE_URL + "/embed/dashboard/" + token +"#bordered=true&titled=true"
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+
+        iframeUrl = f"{METABASE_SITE_URL}/embed/dashboard/{token}#bordered=true&titled=true"
         return iframeUrl
+
     @method_decorator(login_required, name='dispatch')
     def get(self, request):
         user_id = request.user.id
+        dashboard_ids = settings.METABASE_DASHBOARD_LINKS
         dashboards = {
-            'Tempo_logado': self.generate_metabase_embed_url(user_id, dashboard_id=73, type=1),
-            'Tráfego_diário': self.generate_metabase_embed_url(user_id, dashboard_id=72,type=0),
-            'Usuários_Ativos_nos_Últimos_10_Minutos': self.generate_metabase_embed_url(user_id, dashboard_id=74,type=0),
+            'Tempo_logado': self.generate_metabase_embed_url(user_id, dashboard_id=dashboard_ids[1]["id"], type=1),
+            'Tráfego_diário': self.generate_metabase_embed_url(user_id, dashboard_id=dashboard_ids[0]["id"],type=0),
+            'Usuários_Ativos_nos_Últimos_10_Minutos': self.generate_metabase_embed_url(user_id, dashboard_id=dashboard_ids[2]["id"],type=0),
         }
 
         return render(request, 'home/index.html', {'user': request.user, 'dashboard_urls': dashboards})
