@@ -1,8 +1,9 @@
 import requests
 import time
 import os
-from dotenv import load_dotenv
+import re
 import uuid
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -42,7 +43,7 @@ def find_question_by_name(session_id, name):
     return None
 
 
-def create_question(session_id, name, native_query, database_id, display_type="bar", visualization_settings=None):
+def create_question(session_id, name, native_query, database_id, display_type="bar", visualization_settings=None, template_tags=None):
     headers = {
         "Content-Type": "application/json",
         "X-Metabase-Session": session_id
@@ -51,7 +52,10 @@ def create_question(session_id, name, native_query, database_id, display_type="b
         "name": name,
         "dataset_query": {
             "type": "native",
-            "native": {"query": native_query},
+            "native": {
+                "query": native_query,
+                "template_tags": template_tags or {}
+            },
             "database": database_id
         },
         "display": display_type,
@@ -69,15 +73,13 @@ def create_dashboard(session_id, name):
     res.raise_for_status()
     return res.json()["id"]
 
+
 def update_dashboard_with_filter(session_id, dashboard_id, card_id, parameter_name="current_user_id"):
     headers = {"X-Metabase-Session": session_id}
-
-    # Obtém o dashboard completo
     res = requests.get(f"{METABASE_URL}/api/dashboard/{dashboard_id}", headers=headers)
     res.raise_for_status()
     dashboard = res.json()
 
-    # Atualiza lista de parâmetros se necessário
     if parameter_name not in [p["name"] for p in dashboard.get("parameters", [])]:
         dashboard["parameters"].append({
             "name": parameter_name,
@@ -85,11 +87,7 @@ def update_dashboard_with_filter(session_id, dashboard_id, card_id, parameter_na
             "type": "number/=",
             "default": None
         })
-        print(f"Adicionando filtro '{parameter_name}' ao dashboard.")
-    else:
-        print(f"Filtro '{parameter_name}' já existe.")
 
-    # Atualiza os parameter_mappings nos cards
     updated_cards = []
     for card in dashboard["dashcards"]:
         mapping_exists = any(
@@ -103,14 +101,11 @@ def update_dashboard_with_filter(session_id, dashboard_id, card_id, parameter_na
                 "card_id": card_id,
                 "target": ["variable", ["template-tag", parameter_name]]
             })
-            print(f"Conectando filtro '{parameter_name}' ao card {card_id}.")
 
         updated_cards.append(card)
 
-    parameter_id = str(uuid.uuid4())  # Gera um ID único se necessário
-
     new_parameter = {
-        "id": parameter_id,
+        "id": str(uuid.uuid4()),
         "name": parameter_name,
         "slug": parameter_name,
         "type": "number/=",
@@ -125,10 +120,7 @@ def update_dashboard_with_filter(session_id, dashboard_id, card_id, parameter_na
     }
 
     res = requests.put(f"{METABASE_URL}/api/dashboard/{dashboard_id}", headers=headers, json=payload)
-    
     res.raise_for_status()
-    print(f"Dashboard {dashboard_id} atualizado com sucesso.")
-
 
 
 def add_question_to_dashboard_with_filter(session_id, dashboard_id, question_id, parameter_name):
@@ -137,14 +129,11 @@ def add_question_to_dashboard_with_filter(session_id, dashboard_id, question_id,
         "X-Metabase-Session": session_id
     }
 
-    # Obter dados do dashboard (nome, parâmetros e dashcards)
     dashboard_res = requests.get(f"{METABASE_URL}/api/dashboard/{dashboard_id}", headers=headers)
     dashboard_res.raise_for_status()
     dashboard = dashboard_res.json()
 
     ordered_cards = dashboard.get("dashcards", [])
-
-    # Criar novo card com parâmetro mapeado
     new_card = {
         "cardId": question_id,
         "sizeX": 12,
@@ -161,7 +150,6 @@ def add_question_to_dashboard_with_filter(session_id, dashboard_id, question_id,
     }
     ordered_cards.append(new_card)
 
-    # Atualizar dashboard com novo card e filtros
     payload = {
         "name": dashboard["name"],
         "parameters": dashboard.get("parameters", []),
@@ -170,7 +158,7 @@ def add_question_to_dashboard_with_filter(session_id, dashboard_id, question_id,
 
     res = requests.put(f"{METABASE_URL}/api/dashboard/{dashboard_id}", headers=headers, json=payload)
     res.raise_for_status()
-    print(f"Card {question_id} adicionado com filtro ao dashboard {dashboard_id}.")
+
 
 def update_question_axes(session_id, question_id, x_axis="login_date", y_axis="minutos_online"):
     headers = {
@@ -178,103 +166,93 @@ def update_question_axes(session_id, question_id, x_axis="login_date", y_axis="m
         "X-Metabase-Session": session_id
     }
 
-    # Obter a pergunta atual
     res = requests.get(f"{METABASE_URL}/api/card/{question_id}", headers=headers)
     res.raise_for_status()
     question = res.json()
 
-    # Atualizar visualização
     question["visualization_settings"]["graph.metrics"] = [{"name": y_axis}]
     question["visualization_settings"]["graph.dimensions"] = [x_axis]
     question["visualization_settings"]["x_axis"] = x_axis
     question["visualization_settings"]["y_axis"] = [y_axis]
 
-    # Enviar PUT com os dados atualizados
     res = requests.put(f"{METABASE_URL}/api/card/{question_id}", headers=headers, json={
         "visualization_settings": question["visualization_settings"]
     })
     res.raise_for_status()
-    print(f"Visualização da pergunta {question_id} atualizada com sucesso (X: {x_axis}, Y: {y_axis}).")
+
 
 def get_or_create_public_link(session_id, dashboard_id):
-        headers = {"X-Metabase-Session": session_id}
-        res = requests.get(f"{METABASE_URL}/api/dashboard/{dashboard_id}", headers=headers)
+    headers = {"X-Metabase-Session": session_id}
+    res = requests.get(f"{METABASE_URL}/api/dashboard/{dashboard_id}", headers=headers)
+    res.raise_for_status()
+    dashboard = res.json()
+    if dashboard.get("public_uuid"):
+        public_uuid = dashboard["public_uuid"]
+    else:
+        res = requests.post(f"{METABASE_URL}/api/dashboard/{dashboard_id}/public_link", headers=headers)
         res.raise_for_status()
-        dashboard = res.json()
-        if dashboard.get("public_uuid"):
-            public_uuid = dashboard["public_uuid"]
-        else:
-            res = requests.post(f"{METABASE_URL}/api/dashboard/{dashboard_id}/public_link", headers=headers)
-            res.raise_for_status()
-            public_uuid = res.json()["uuid"]
-        return f"{METABASE_URL}/public/dashboard/{public_uuid}"
+        public_uuid = res.json()["uuid"]
+    return f"{METABASE_URL}/public/dashboard/{public_uuid}"
+
 
 def main():
     session_id = login()
-    
+    time.sleep(2)
+    database_id = 2
 
-    time.sleep(2)  
-
-    database_id = 2 
-
-    
+    # Pergunta 1
     q1 = find_question_by_name(session_id, "Usuários registrados hoje")
     if not q1:
         q1 = create_question(
             session_id,
             "Usuários registrados hoje",
             """
-            SELECT
-                "public"."accounts_feeduser"."id" AS id,
-                COUNT(*) AS count
-            FROM
-                "public"."accounts_feeduser"
-            WHERE
-                "public"."accounts_feeduser"."date_joined" >= CAST(CAST(NOW() AS date) AS timestamptz)
-                AND "public"."accounts_feeduser"."date_joined" < CAST(CAST((NOW() + INTERVAL '1 day') AS date) AS timestamptz)
-            GROUP BY
-                "public"."accounts_feeduser"."id"
-            ORDER BY
-                "public"."accounts_feeduser"."id" ASC
+            SELECT COUNT(*) AS count
+            FROM accounts_feeduser
+            WHERE date_joined >= CURRENT_DATE
+              AND date_joined < CURRENT_DATE + INTERVAL '1 day'
             """,
             database_id,
             display_type="line"
         )
-        print("Pergunta 'Usuários registrados hoje' criada.")
-    else:
-        print("Pergunta 'Usuários registrados hoje' já existe.")
 
-   
+    # Pergunta 2
     q2 = find_question_by_name(session_id, "Tempo logado por usuário")
     if not q2:
         q2 = create_question(
             session_id,
-            "Tempo logado por usuário",            
-"""SELECT
-  id AS session_id,
-  user_id,
-  login_time::date AS login_date,
-  EXTRACT(EPOCH FROM (COALESCE(logout_time, now()) - login_time)) / 60 AS minutos_online
-FROM
-  accounts_usersession
-WHERE
-  user_id = CAST({{current_user_id}} AS bigint)
-ORDER BY
-  login_time ASC
-
+            "Tempo logado por usuário",
+            """
+            SELECT
+              id AS session_id,
+              user_id,
+              login_time::date AS login_date,
+              EXTRACT(EPOCH FROM (COALESCE(logout_time, now()) - login_time)) / 60 AS minutos_online
+            FROM
+              accounts_usersession
+            WHERE
+              user_id = CAST({{current_user_id}} AS bigint)
+            ORDER BY
+              login_time ASC
             """,
             database_id,
             display_type="bar",
             visualization_settings={
                 "x_axis": "login_date",
                 "y_axis": ["minutos_online"]
+            },
+            template_tags={
+                "current_user_id": {
+                    "id": "current_user_id",
+                    "name": "current_user_id",
+                    "display_name": "current_user_id",
+                    "type": "number",
+                    "required": False
+                }
             }
         )
-        print("Pergunta 'Tempo logado por usuário' criada.")
-    else:
-        print("Pergunta 'Tempo logado por usuário' já existe.")
-    
-    
+
+    # Pergunta 3
     q3 = find_question_by_name(session_id, "Usuários Ativos nos Últimos 10 Minutos")
     if not q3:
         q3 = create_question(
@@ -288,65 +266,43 @@ ORDER BY
             database_id,
             display_type="scalar"
         )
-        print("Pergunta 'Usuários Ativos nos Últimos 10 Minutos' criada.")
-    else:
-        print("Pergunta 'Usuários Ativos nos Últimos 10 Minutos' já existe.")
 
-    
-    d1 = find_dashboard_by_name(session_id, "Tráfego diário de usuários")
-    if not d1:
-        d1 = create_dashboard(session_id, "Tráfego diário de usuários")
-        print("Dashboard 'Tráfego diário de usuários' criado.")
-    else:
-        print("Dashboard 'Tráfego diário de usuários' já existe.")
+    # Dashboards
+    d1 = find_dashboard_by_name(session_id, "Usuários registrados hoje") or create_dashboard(session_id, "Usuários registrados hoje")
+    d2 = find_dashboard_by_name(session_id, "Tempo logado por usuário") or create_dashboard(session_id, "Tempo logado por usuário")
+    d3 = find_dashboard_by_name(session_id, "Usuários Ativos nos Últimos 10 Minutos") or create_dashboard(session_id, "Usuários Ativos nos Últimos 10 Minutos")
 
-    d2 = find_dashboard_by_name(session_id, "Tempo logado por usuário")
-    if not d2:
-        d2 = create_dashboard(session_id, "Tempo logado por usuário")
-        print("Dashboard 'Tempo logado por usuário' criado.")
-    else:
-        print("Dashboard 'Tempo logado por usuário' já existe.")
-
-    d3 = find_dashboard_by_name(session_id, "Usuários Ativos nos Últimos 10 Minutos")
-    if not d3:
-        d3 = create_dashboard(session_id, "Usuários Ativos nos Últimos 10 Minutos")
-        print("Dashboard 'Usuários Ativos nos Últimos 10 Minutos' criado.")
-    else:
-        print("Dashboard 'Usuários Ativos nos Últimos 10 Minutos' já existe.")
+    # Atualizações
     update_dashboard_with_filter(session_id, d2, q2, parameter_name="current_user_id")
-
-
     add_question_to_dashboard_with_filter(session_id, d2, q2, "current_user_id")
-    update_question_axes(session_id, q2, x_axis="login_date", y_axis="minutos_online")
+    update_question_axes(session_id, q2)
+
+    # Links públicos
     trafego_public_url = get_or_create_public_link(session_id, d1)
     tempo_logado_public_url = get_or_create_public_link(session_id, d2)
     ativos_public_url = get_or_create_public_link(session_id, d3)
 
     dashboard_links = [
-    {
-        "name": "Tráfego_diário",
-        "public_url": trafego_public_url,
-        "id": d1
-    },
-    {
-        "name": "Tempo_logado",
-        "public_url": tempo_logado_public_url,
-        "id": d2
-    },
-    {
-        "name": "Usuários_Ativos_nos_Últimos_10_Minutos",
-        "public_url": ativos_public_url,
-        "id": d3
-    }
-]
+        {"name": "Usuários_registrados_hoje", "public_url": trafego_public_url, "id": d1},
+        {"name": "Tempo_logado", "public_url": tempo_logado_public_url, "id": d2},
+        {"name": "Usuários_Ativos_nos_Últimos_10_Minutos", "public_url": ativos_public_url, "id": d3}
+    ]
 
-    # Atualizar `settings.py` automaticamente:
-    with open("django_backend/settings.py", "a") as f:
-        f.write("\n\n# DASHBOARDS DO METABASE\n")
-        f.write("METABASE_DASHBOARD_LINKS = [\n")
-        for dash in dashboard_links:
-            f.write(f"    {{'name': '{dash['name']}', 'public_url': '{dash['public_url']}', 'id': {dash['id']}}},\n")
-        f.write("]\n")
+    # Atualizar settings.py
+    with open("django_backend/settings.py", "r", encoding="utf-8") as f:
+        content = f.read()
+
+    pattern = r"(?:(?:#\s*DASHBOARDS DO METABASE\s*\n)?METABASE_DASHBOARD_LINKS\s*=\s*\[[\s\S]*?\])"
+    content = re.sub(pattern, "", content)
+
+    novo_bloco = "METABASE_DASHBOARD_LINKS = [\n"
+    for dash in dashboard_links:
+        novo_bloco += f"    {{'name': '{dash['name']}', 'public_url': '{dash['public_url']}', 'id': {dash['id']}}},\n"
+    novo_bloco += "]\n"
+
+    with open("django_backend/settings.py", "w", encoding="utf-8") as f:
+        f.write(content.strip() + "\n\n" + novo_bloco)
+
 
 if __name__ == "__main__":
     main()

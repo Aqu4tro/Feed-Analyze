@@ -86,12 +86,12 @@ class HomeView(TemplateView):
             payload["params"] = {
                 "current_user_id": user_id
             }
-
+        print(payload)
         token = jwt.encode(payload, METABASE_SECRET_KEY)
         if isinstance(token, bytes):
             token = token.decode('utf-8')
 
-        iframeUrl = f"{METABASE_SITE_URL}/embed/dashboard/{token}#bordered=true&titled=true"
+        iframeUrl = METABASE_SITE_URL + "/embed/dashboard/" + token + "#bordered=true&titled=true"
         return iframeUrl
 
     @method_decorator(login_required, name='dispatch')
@@ -100,7 +100,7 @@ class HomeView(TemplateView):
         dashboard_ids = settings.METABASE_DASHBOARD_LINKS
         dashboards = {
             'Tempo_logado': self.generate_metabase_embed_url(user_id, dashboard_id=dashboard_ids[1]["id"], type=1),
-            'Tráfego_diário': self.generate_metabase_embed_url(user_id, dashboard_id=dashboard_ids[0]["id"],type=0),
+            'Usuários_registrados_hoje': self.generate_metabase_embed_url(user_id, dashboard_id=dashboard_ids[0]["id"],type=0),
             'Usuários_Ativos_nos_Últimos_10_Minutos': self.generate_metabase_embed_url(user_id, dashboard_id=dashboard_ids[2]["id"],type=0),
         }
 
