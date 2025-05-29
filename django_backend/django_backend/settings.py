@@ -73,6 +73,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'django_backend.wsgi.application'
 
+SESSION_COOKIE_AGE = 28800
+
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases

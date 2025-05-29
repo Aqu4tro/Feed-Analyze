@@ -1,40 +1,40 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>Cadastro</title>
     <link rel="stylesheet" href="{% static 'styleRegister.css' %}">
 </head>
 <body>
     <div class="container">
-        <h1>Register</h1>
+        <h1>Cadastro</h1>
         <form method="post">
             {% csrf_token %}
             <div>
-                <label for="First_Name">First Name:</label>
+                <label for="firstName">Nome:</label>
                 <input type="text" id="firstName" name="firstName" required>
             </div>
             <div>
-                <label for="last_Name">Last Name:</label>
+                <label for="lastName">Sobrenome:</label>
                 <input type="text" id="lastName" name="lastName" required>
             </div>
             <div>
-                <label for="email">Email:</label>
+                <label for="email">E-mail:</label>
                 <input type="email" id="email" name="email" required>
             </div>
             <div>
-                <label for="password1">Password:</label>
+                <label for="password1">Senha:</label>
                 <input type="password" id="password1" name="password" required>
             </div>
             <div>
-                <label for="password2">Confirm Password:</label>
+                <label for="password2">Confirme a senha:</label>
                 <input type="password" id="password2" name="confirmPassword" required>
             </div>
-            <button type="submit">Register</button>
+            <button type="submit">Cadastrar</button>
         </form>
-        <p>Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+        <p>Já tem uma conta? <a href="{% url 'login' %}">Faça login</a></p>
     </div>
 </body>
 </html>

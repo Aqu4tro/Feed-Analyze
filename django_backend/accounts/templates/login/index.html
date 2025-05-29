@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,21 +20,21 @@
         <form method="post">
             {% csrf_token %}
             <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="text" id="email" name="email" placeholder="Enter your email" required>
+                <label for="email">E-mail:</label>
+                <input type="text" id="email" name="email" placeholder="Digite seu e-mail" required>
             </div>
             <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                <label for="password">Senha:</label>
+                <input type="password" id="password" name="password" placeholder="Digite sua senha" required>
             </div>
             <div class="form-group">
-                <button type="submit" class="btn">Login</button>
+                <button type="submit" class="btn">Entrar</button>
             </div>
         </form>
         <p class="form-footer">
-            Forgot your password? <a href="{% url 'password_reset' %}">Recover it here</a>
+            Esqueceu sua senha? <a href="{% url 'password_reset' %}">Recupere aqui</a>
         </p>
-        <p class="form-footer">Don't have an account? <a href="{% url 'register' %}">Sign up here</a></p>
+        <p class="form-footer">Ainda não tem uma conta? <a href="{% url 'register' %}">Cadastre-se aqui</a></p>
     </div>
 </body>
 </html>

@@ -1,13 +1,12 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home - Dashboards</title>
+    <title>Início - Dashboards</title>
     <link rel="stylesheet" href="{% static 'styleHome.css' %}">
     <script>
-        
         setInterval(function () {
             document.querySelectorAll("iframe").forEach(function (iframe) {
                 iframe.contentWindow.location.reload();
@@ -19,14 +18,14 @@
     <div class="sidebar">
         <h2>Menu</h2>
         <ul>
-            <li><strong>Name:</strong> {{ user.firstName }} {{ user.lastName }}</li>
+            <li><strong>Nome:</strong> {{ user.firstName }} {{ user.lastName }}</li>
             <li><strong>Email:</strong> {{ user.email }}</li>
         </ul>
         <form method="POST">
             {% csrf_token %}
             <ul>
                 <li>
-                    <button name="logout" id="logout" type="submit" class="form-button">Logout</button>
+                    <button name="logout" id="logout" type="submit" class="form-button">Sair</button>
                 </li>
             </ul>
         </form>
@@ -34,7 +33,7 @@
 
     <div class="main-content">
         <header>
-            <h1>Welcome to Feed Analyze</h1>
+            <h1>Bem-vindo ao Feed Analyze</h1>
         </header>
         <main>
             <section>
@@ -53,7 +52,7 @@
             </section>
         </main>
         <footer>
-            <p>&copy; 2025 Feed Analyze. All rights reserved.</p>
+            <p>&copy; 2025 Feed Analyze. Todos os direitos reservados.</p>
         </footer>
     </div>
 </body>
