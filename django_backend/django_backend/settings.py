@@ -143,7 +143,7 @@ METABASE_SITE_URL = os.getenv('METABASE_SITE_URL')
 METABASE_SECRET_KEY = os.getenv('METABASE_SECRET_KEY')
 
 METABASE_DASHBOARD_LINKS = [
-    {'name': 'Usuários_registrados_hoje', 'public_url': 'http://localhost:3000/public/dashboard/a01e7c54-0c8b-44bf-bc4a-c837e32d356c', 'id': 165},
-    {'name': 'Tempo_logado', 'public_url': 'http://localhost:3000/public/dashboard/7367ceee-4204-498f-86f1-b222a561b66b', 'id': 166},
-    {'name': 'Usuários_Ativos_nos_Últimos_10_Minutos', 'public_url': 'http://localhost:3000/public/dashboard/2a439247-5c31-46eb-a6f5-41db7d32a2a5', 'id': 167},
+    {'name': 'Usuarios_cadastrados_hoje', 'public_url': 'http://localhost:3000/public/dashboard/4c72c020-2fa4-4836-ac56-5b74e1363956', 'id': 126},
+    {'name': 'Tempo_online_usuario', 'public_url': 'http://localhost:3000/public/dashboard/1c582bbe-a60c-449d-b847-0262cd8bde06', 'id': 127},
+    {'name': 'Usuarios_ativos_ultimos_10_minutos', 'public_url': 'http://localhost:3000/public/dashboard/ffc6e316-281e-4968-a097-6b0becca4a82', 'id': 128},
 ]

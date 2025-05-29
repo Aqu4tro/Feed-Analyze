@@ -7,15 +7,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-METABASE_URL = "http://localhost:3000"
-EMAIL = os.getenv("EMAIL")
-PASSWORD = os.getenv("PASSWORD")
+metabase_url = "http://localhost:3000"
+email = os.getenv("EMAIL")
+password = os.getenv("PASSWORD")
 
 
 def login():
-    response = requests.post(f"{METABASE_URL}/api/session", json={
-        "username": EMAIL,
-        "password": PASSWORD
+    response = requests.post(f"{metabase_url}/api/session", json={
+        "username": email,
+        "password": password
     })
     response.raise_for_status()
     return response.json()['id']
@@ -23,7 +23,7 @@ def login():
 
 def find_dashboard_by_name(session_id, name):
     headers = {"X-Metabase-Session": session_id}
-    res = requests.get(f"{METABASE_URL}/api/dashboard", headers=headers)
+    res = requests.get(f"{metabase_url}/api/dashboard", headers=headers)
     res.raise_for_status()
     dashboards = res.json()
     for dashboard in dashboards:
@@ -34,7 +34,7 @@ def find_dashboard_by_name(session_id, name):
 
 def find_question_by_name(session_id, name):
     headers = {"X-Metabase-Session": session_id}
-    res = requests.get(f"{METABASE_URL}/api/card", headers=headers)
+    res = requests.get(f"{metabase_url}/api/card", headers=headers)
     res.raise_for_status()
     cards = res.json()
     for card in cards:
@@ -61,7 +61,7 @@ def create_question(session_id, name, native_query, database_id, display_type="b
         "display": display_type,
         "visualization_settings": visualization_settings or {}
     }
-    res = requests.post(f"{METABASE_URL}/api/card", headers=headers, json=data)
+    res = requests.post(f"{metabase_url}/api/card", headers=headers, json=data)
     res.raise_for_status()
     return res.json()["id"]
 
@@ -69,113 +69,95 @@ def create_question(session_id, name, native_query, database_id, display_type="b
 def create_dashboard(session_id, name):
     headers = {"X-Metabase-Session": session_id}
     data = {"name": name}
-    res = requests.post(f"{METABASE_URL}/api/dashboard", headers=headers, json=data)
+    res = requests.post(f"{metabase_url}/api/dashboard", headers=headers, json=data)
     res.raise_for_status()
     return res.json()["id"]
 
 
-def update_dashboard_with_filter(session_id, dashboard_id, card_id, parameter_name="current_user_id"):
-    headers = {"X-Metabase-Session": session_id}
-    res = requests.get(f"{METABASE_URL}/api/dashboard/{dashboard_id}", headers=headers)
-    res.raise_for_status()
-    dashboard = res.json()
-
-    if parameter_name not in [p["name"] for p in dashboard.get("parameters", [])]:
-        dashboard["parameters"].append({
-            "name": parameter_name,
-            "slug": parameter_name,
-            "type": "number/=",
-            "default": None
-        })
-
-    updated_cards = []
-    for card in dashboard["dashcards"]:
-        mapping_exists = any(
-            m.get("parameter_name") == parameter_name
-            for m in card.get("parameter_mappings", [])
-        )
-
-        if card["card"]["id"] == card_id and not mapping_exists:
-            card["parameter_mappings"].append({
-                "parameter_name": parameter_name,
-                "card_id": card_id,
-                "target": ["variable", ["template-tag", parameter_name]]
-            })
-
-        updated_cards.append(card)
-
-    new_parameter = {
-        "id": str(uuid.uuid4()),
-        "name": parameter_name,
-        "slug": parameter_name,
-        "type": "number/=",
-        "default": None,
-        "required": False
-    }
-
-    payload = {
-        "name": dashboard["name"],
-        "parameters": [new_parameter],
-        "ordered_cards": updated_cards
-    }
-
-    res = requests.put(f"{METABASE_URL}/api/dashboard/{dashboard_id}", headers=headers, json=payload)
-    res.raise_for_status()
-
-
-def add_question_to_dashboard_with_filter(session_id, dashboard_id, question_id, parameter_name):
+def add_question_to_dashboard_with_filter(session_id, user_id, dashboard_id, question_id, add_parameter, parameter_name="current_user_id", field_reference="user.id"):
     headers = {
         "Content-Type": "application/json",
         "X-Metabase-Session": session_id
     }
 
-    dashboard_res = requests.get(f"{METABASE_URL}/api/dashboard/{dashboard_id}", headers=headers)
-    dashboard_res.raise_for_status()
-    dashboard = dashboard_res.json()
+    response = requests.get(f"{metabase_url}/api/dashboard/{dashboard_id}", headers=headers)
+    response.raise_for_status()
+    dashboard = response.json()
 
-    ordered_cards = dashboard.get("dashcards", [])
-    new_card = {
-        "cardId": question_id,
-        "sizeX": 12,
-        "sizeY": 6,
+    dashcards = dashboard.get("dashcards", [])
+    parameters = dashboard.get("parameters", [])
+
+    parameter_id = None
+
+    if add_parameter:
+        parameter_id = next((p["id"] for p in parameters if p["slug"] == parameter_name), None)
+        if not parameter_id:
+            parameter_id = str(uuid.uuid4())
+            parameters.append({
+                "id": parameter_id,
+                "name": parameter_name,
+                "slug": parameter_name,
+                "type": "number/=",
+                "field": {"field_ref": [field_reference]},
+                "required": False,
+                "allow_override": True,
+                "default": int(user_id)
+            })
+
+    new_dashcard = {
+        "id": question_id,
+        "card_id": question_id,
         "col": 0,
-        "row": len(ordered_cards) * 6,
-        "parameter_mappings": [
+        "row": len(dashcards) * 6,
+        "size_x": 12,
+        "size_y": 6
+    }
+
+    if add_parameter and parameter_id:
+        new_dashcard["parameter_mappings"] = [
             {
-                "parameter_name": parameter_name,
+                "parameter_id": parameter_id,
                 "card_id": question_id,
                 "target": ["variable", ["template-tag", parameter_name]]
             }
         ]
-    }
-    ordered_cards.append(new_card)
+
+    dashcards.append(new_dashcard)
 
     payload = {
         "name": dashboard["name"],
-        "parameters": dashboard.get("parameters", []),
-        "ordered_cards": ordered_cards
+        "enable_embedding": True,
+        "parameters": parameters,
+        "dashcards": dashcards,
+        "embedding_params": {
+            "current_user_id": "enabled"
+        }
     }
 
-    res = requests.put(f"{METABASE_URL}/api/dashboard/{dashboard_id}", headers=headers, json=payload)
-    res.raise_for_status()
+    put_res = requests.put(
+        f"{metabase_url}/api/dashboard/{dashboard_id}",
+        headers=headers,
+        json=payload
+    )
+    put_res.raise_for_status()
 
 
-def update_question_axes(session_id, question_id, x_axis="login_date", y_axis="minutos_online"):
+def update_question_axes(session_id, question_id, x_axis="login_date", y_axis="minutes_online"):
     headers = {
         "Content-Type": "application/json",
         "X-Metabase-Session": session_id
     }
 
-    res = requests.get(f"{METABASE_URL}/api/card/{question_id}", headers=headers)
+    res = requests.get(f"{metabase_url}/api/card/{question_id}", headers=headers)
     res.raise_for_status()
     question = res.json()
 
-    question["visualization_settings"]["graph.metrics"] = [{"name": y_axis}]
+    question["visualization_settings"]["graph.metrics"] = [y_axis]
     question["visualization_settings"]["graph.dimensions"] = [x_axis]
     question["visualization_settings"]["x_axis"] = x_axis
     question["visualization_settings"]["y_axis"] = [y_axis]
 
-    res = requests.put(f"{METABASE_URL}/api/card/{question_id}", headers=headers, json={
+    res = requests.put(f"{metabase_url}/api/card/{question_id}", headers=headers, json={
         "visualization_settings": question["visualization_settings"]
     })
     res.raise_for_status()
@@ -183,51 +165,59 @@ def update_question_axes(session_id, question_id, x_axis="login_date", y_axis="m
 
 def get_or_create_public_link(session_id, dashboard_id):
     headers = {"X-Metabase-Session": session_id}
-    res = requests.get(f"{METABASE_URL}/api/dashboard/{dashboard_id}", headers=headers)
+    res = requests.get(f"{metabase_url}/api/dashboard/{dashboard_id}", headers=headers)
     res.raise_for_status()
     dashboard = res.json()
     if dashboard.get("public_uuid"):
         public_uuid = dashboard["public_uuid"]
     else:
-        res = requests.post(f"{METABASE_URL}/api/dashboard/{dashboard_id}/public_link", headers=headers)
+        res = requests.post(f"{metabase_url}/api/dashboard/{dashboard_id}/public_link", headers=headers)
         res.raise_for_status()
         public_uuid = res.json()["uuid"]
-    return f"{METABASE_URL}/public/dashboard/{public_uuid}"
+    return f"{metabase_url}/public/dashboard/{public_uuid}"
 
 
 def main():
     session_id = login()
-    time.sleep(2)
+    time.sleep(5)
     database_id = 2
 
-    # Pergunta 1
-    q1 = find_question_by_name(session_id, "Usuários registrados hoje")
-    if not q1:
-        q1 = create_question(
+    question1 = find_question_by_name(session_id, "Usuários cadastrados hoje")
+    if not question1:
+        question1 = create_question(
             session_id,
-            "Usuários registrados hoje",
+            "Usuários cadastrados hoje",
             """
-            SELECT COUNT(*) AS count
-            FROM accounts_feeduser
-            WHERE date_joined >= CURRENT_DATE
-              AND date_joined < CURRENT_DATE + INTERVAL '1 day'
+            SELECT
+                date_trunc('day', login_time) AS day,
+                floor(EXTRACT(hour FROM login_time) / 4) AS block_4h,
+                COUNT(DISTINCT user_id) AS registered_users
+            FROM accounts_usersession
+            WHERE
+                logout_time IS NULL
+                OR logout_time >= NOW() - INTERVAL '1 day'
+            GROUP BY day, block_4h
+            ORDER BY day, block_4h
             """,
             database_id,
-            display_type="line"
+            display_type="line",
+            visualization_settings={
+                "x_axis": "block_4h",
+                "y_axis": ["registered_users"],
+            }
         )
 
-    # Pergunta 2
-    q2 = find_question_by_name(session_id, "Tempo logado por usuário")
-    if not q2:
-        q2 = create_question(
+    question2 = find_question_by_name(session_id, "Tempo online do usuário")
+    if not question2:
+        question2 = create_question(
             session_id,
-            "Tempo logado por usuário",
+            "Tempo online do usuário",
             """
             SELECT
               id AS session_id,
               user_id,
               login_time::date AS login_date,
-              EXTRACT(EPOCH FROM (COALESCE(logout_time, now()) - login_time)) / 60 AS minutos_online
+              EXTRACT(EPOCH FROM (COALESCE(logout_time, now()) - login_time)) / 60 AS minutes_online
             FROM
               accounts_usersession
             WHERE
@@ -239,7 +229,7 @@ def main():
             display_type="bar",
             visualization_settings={
                 "x_axis": "login_date",
-                "y_axis": ["minutos_online"]
+                "y_axis": ["minutes_online"]
             },
             template_tags={
                 "current_user_id": {
@@ -252,56 +242,61 @@ def main():
             }
         )
 
-    # Pergunta 3
-    q3 = find_question_by_name(session_id, "Usuários Ativos nos Últimos 10 Minutos")
-    if not q3:
-        q3 = create_question(
+    question3 = find_question_by_name(session_id, "Usuários ativos nos últimos 10 minutos")
+    if not question3:
+        question3 = create_question(
             session_id,
-            "Usuários Ativos nos Últimos 10 Minutos",
+            "Usuários ativos nos últimos 10 minutos",
             """
-            SELECT COUNT(*) AS usuarios_online
-            FROM accounts_feeduser
-            WHERE last_login >= NOW() - INTERVAL '10 minutes'
+            SELECT
+                COUNT(DISTINCT user_id) AS active_users
+            FROM accounts_usersession
+            WHERE
+                logout_time IS NULL
+                OR logout_time >= NOW() - INTERVAL '10 minutes'
             """,
             database_id,
-            display_type="scalar"
+            display_type="scalar",
         )
 
-    # Dashboards
-    d1 = find_dashboard_by_name(session_id, "Usuários registrados hoje") or create_dashboard(session_id, "Usuários registrados hoje")
-    d2 = find_dashboard_by_name(session_id, "Tempo logado por usuário") or create_dashboard(session_id, "Tempo logado por usuário")
-    d3 = find_dashboard_by_name(session_id, "Usuários Ativos nos Últimos 10 Minutos") or create_dashboard(session_id, "Usuários Ativos nos Últimos 10 Minutos")
 
-    # Atualizações
-    update_dashboard_with_filter(session_id, d2, q2, parameter_name="current_user_id")
-    add_question_to_dashboard_with_filter(session_id, d2, q2, "current_user_id")
-    update_question_axes(session_id, q2)
+    dashboard1 = find_dashboard_by_name(session_id, "Usuários cadastrados hoje") or create_dashboard(session_id, "Usuários cadastrados hoje")
+    dashboard2 = find_dashboard_by_name(session_id, "Tempo online do usuário") or create_dashboard(session_id, "Tempo online do usuário")
+    dashboard3 = find_dashboard_by_name(session_id, "Usuários ativos nos últimos 10 minutos") or create_dashboard(session_id, "Usuários ativos nos últimos 10 minutos")
+    
+    add_question_to_dashboard_with_filter(session_id=session_id, dashboard_id=dashboard1, question_id=question1, add_parameter=False, user_id=0)
+    
+    add_question_to_dashboard_with_filter(session_id=session_id, dashboard_id=dashboard2, question_id=question2, add_parameter=True, parameter_name="current_user_id", user_id=0)
+    
+    update_question_axes(session_id, question2)
 
-    # Links públicos
-    trafego_public_url = get_or_create_public_link(session_id, d1)
-    tempo_logado_public_url = get_or_create_public_link(session_id, d2)
-    ativos_public_url = get_or_create_public_link(session_id, d3)
+    add_question_to_dashboard_with_filter(session_id=session_id, dashboard_id=dashboard3, question_id=question3, add_parameter=False, user_id=0)
+    
+    update_question_axes(session_id, question1, x_axis="block_4h", y_axis="registered_users") 
+    
+    traffic_public_url = get_or_create_public_link(session_id, dashboard1)
+    logged_time_public_url = get_or_create_public_link(session_id, dashboard2)
+    active_public_url = get_or_create_public_link(session_id, dashboard3)
 
     dashboard_links = [
-        {"name": "Usuários_registrados_hoje", "public_url": trafego_public_url, "id": d1},
-        {"name": "Tempo_logado", "public_url": tempo_logado_public_url, "id": d2},
-        {"name": "Usuários_Ativos_nos_Últimos_10_Minutos", "public_url": ativos_public_url, "id": d3}
+        {"name": "Usuarios_cadastrados_hoje", "public_url": traffic_public_url, "id": dashboard1},
+        {"name": "Tempo_online_usuario", "public_url": logged_time_public_url, "id": dashboard2},
+        {"name": "Usuarios_ativos_ultimos_10_minutos", "public_url": active_public_url, "id": dashboard3}
     ]
 
-    # Atualizar settings.py
     with open("django_backend/settings.py", "r", encoding="utf-8") as f:
         content = f.read()
 
-    pattern = r"(?:(?:#\s*DASHBOARDS DO METABASE\s*\n)?METABASE_DASHBOARD_LINKS\s*=\s*\[[\s\S]*?\])"
+    pattern = r"(?:(?:#\s*METABASE DASHBOARDS\s*\n)?METABASE_DASHBOARD_LINKS\s*=\s*\[[\s\S]*?\])"
     content = re.sub(pattern, "", content)
 
-    novo_bloco = "METABASE_DASHBOARD_LINKS = [\n"
+    new_block = "METABASE_DASHBOARD_LINKS = [\n"
     for dash in dashboard_links:
-        novo_bloco += f"    {{'name': '{dash['name']}', 'public_url': '{dash['public_url']}', 'id': {dash['id']}}},\n"
-    novo_bloco += "]\n"
+        new_block += f"    {{'name': '{dash['name']}', 'public_url': '{dash['public_url']}', 'id': {dash['id']}}},\n"
+    new_block += "]\n"
 
     with open("django_backend/settings.py", "w", encoding="utf-8") as f:
-        f.write(content.strip() + "\n\n" + novo_bloco)
+        f.write(content.strip() + "\n\n" + new_block)
 
 
 if __name__ == "__main__":

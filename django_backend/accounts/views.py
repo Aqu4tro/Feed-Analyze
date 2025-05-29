@@ -18,9 +18,6 @@ from django.db.models.functions import Extract
 from django.core.cache import cache
 from django_backend import settings
 
-
-
-
 class LoginView(FormView):
     form_class = FeedUserLoginForm
     template_name = 'login/index.html'
@@ -86,8 +83,8 @@ class HomeView(TemplateView):
             payload["params"] = {
                 "current_user_id": user_id
             }
-        print(payload)
-        token = jwt.encode(payload, METABASE_SECRET_KEY)
+        
+        token = jwt.encode(payload, METABASE_SECRET_KEY, algorithm="HS256")
         if isinstance(token, bytes):
             token = token.decode('utf-8')
 
