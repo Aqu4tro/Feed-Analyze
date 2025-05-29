@@ -143,7 +143,19 @@ METABASE_SITE_URL = os.getenv('METABASE_SITE_URL')
 METABASE_SECRET_KEY = os.getenv('METABASE_SECRET_KEY')
 
 METABASE_DASHBOARD_LINKS = [
-    {'name': 'Usuarios_cadastrados_hoje', 'public_url': 'http://localhost:3000/public/dashboard/4c72c020-2fa4-4836-ac56-5b74e1363956', 'id': 126},
-    {'name': 'Tempo_online_usuario', 'public_url': 'http://localhost:3000/public/dashboard/1c582bbe-a60c-449d-b847-0262cd8bde06', 'id': 127},
-    {'name': 'Usuarios_ativos_ultimos_10_minutos', 'public_url': 'http://localhost:3000/public/dashboard/ffc6e316-281e-4968-a097-6b0becca4a82', 'id': 128},
+    {'name': 'Usuarios_cadastrados_hoje', 'public_url': 'http://localhost:3000/public/dashboard/bf43dcc9-90d8-4577-aa43-972e1ebd3874', 'id': 129},
+    {'name': 'Tempo_online_usuario', 'public_url': 'http://localhost:3000/public/dashboard/d49b2737-e911-45ae-86e7-6e3ddddf7909', 'id': 130},
+    {'name': 'Usuarios_ativos_ultimos_10_minutos', 'public_url': 'http://localhost:3000/public/dashboard/a66f402a-8689-466f-a8ce-0e5fd740935c', 'id': 131},
 ]
+
+# Envio real de e-mails via SMTP (Gmail)
+#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#EMAIL_HOST = 'smtp.gmail.com'             
+#EMAIL_PORT = 587                          
+#EMAIL_USE_TLS = True                      
+#EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')  # E-mail do remetente
+#EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')  # Senha de app do Gmail
+#DEFAULT_FROM_EMAIL = EMAIL_HOST_USER      # Remetente padrão
+
+# Backend alternativo (imprime no console para testes)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
