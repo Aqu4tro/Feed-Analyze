@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: feed_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  metabase:
+    image: metabase/metabase
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    environment:
+
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: feed_db
+      MB_DB_PORT: 5432
+      MB_DB_USER: admin
+      MB_DB_PASS: admin123
+      MB_DB_HOST: postgres
+
+      MB_SETUP_ADMIN_EMAIL: admin@example.com
+      MB_SETUP_ADMIN_PASSWORD: admin123
+      MB_SETUP_ADMIN_NAME: Admin
+      MB_SETUP_TOKEN: setup123
+
+volumes:
+  pgdata:
+

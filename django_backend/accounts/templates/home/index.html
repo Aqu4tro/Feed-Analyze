@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Início - Dashboards</title>
+    <link rel="stylesheet" href="{% static 'styleHome.css' %}">
+    <script>
+        setInterval(function () {
+            document.querySelectorAll("iframe").forEach(function (iframe) {
+                iframe.contentWindow.location.reload();
+            });
+        }, 60000);
+    </script>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <ul>
+            <li><strong>Nome:</strong> {{ user.firstName }} {{ user.lastName }}</li>
+            <li><strong>Email:</strong> {{ user.email }}</li>
+        </ul>
+        <form method="POST">
+            {% csrf_token %}
+            <ul>
+                <li>
+                    <button name="logout" id="logout" type="submit" class="form-button">Sair</button>
+                </li>
+            </ul>
+        </form>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <h1>Bem-vindo ao Feed Analyze</h1>
+        </header>
+        <main>
+            <section>
+                <h2>Dashboards</h2>
+                <div class="dashboard-container">
+                    <div class="dashboard-item dashboard-main">
+                        <iframe src="{{ dashboard_urls.Tempo_logado }}" width="100%" height="600" frameborder="0" ></iframe>
+                    </div>
+                    <div class="dashboard-item dashboard-secondary-1">
+                        <iframe src="{{ dashboard_urls.Usuários_registrados_hoje }}"></iframe>
+                    </div>
+                    <div class="dashboard-item dashboard-secondary-2">
+                        <iframe src="{{ dashboard_urls.Usuários_Ativos_nos_Últimos_10_Minutos }}"></iframe>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <footer>
+            <p>&copy; 2025 Feed Analyze. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+</body>
+</html>
