@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nova Senha</title>
+    <title>New Password</title>
 </head>
 <body>
     <div class="form-container">
-        <h1>Defina uma nova senha</h1>
+        <h1>Set a New Password</h1>
         <form method="POST">
             {% csrf_token %}
             {{ form.as_p }}
-            <button type="submit" class="btn">Redefinir senha</button>
+            <button type="submit" class="btn">Reset Password</button>
         </form>
     </div>
 </body>
